@@ -139,3 +139,79 @@ jobs:
           \`\`\`"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{
+              "text": ":rocket: New version published!",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": ":package: React Button Library v${{ steps.version_bump.outputs.new_version }} Published!"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "A new version of the React Button Library has been successfully published to npm! :tada:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n`${{ steps.version_bump.outputs.new_version }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Package:*\n`@gthangaraj-fr/react-button-library`"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Install the new version:*\n```npm install @gthangaraj-fr/react-button-library@${{ steps.version_bump.outputs.new_version }}```"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Changelog"
+                      },
+                      "url": "https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md",
+                      "style": "primary"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Release"
+                      },
+                      "url": "https://github.com/${{ github.repository }}/releases/tag/${{ steps.version_bump.outputs.new_version }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "npm Package"
+                      },
+                      "url": "https://www.npmjs.com/package/@gthangaraj-fr/react-button-library"
+                    }
+                  ]
+                }
+              ]
+            }' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
