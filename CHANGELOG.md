@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.3 - 2025-07-21
+
+### Changes
+### Changes since v1.0.2
+- fix: preserve changelog history across version releases
+
 ## v1.0.2 - 2025-07-21
 
 ### Changes
