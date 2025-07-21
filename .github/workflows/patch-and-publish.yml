@@ -56,9 +56,11 @@ jobs:
       - name: Bump version
         id: version_bump
         run: |
+          echo "Current version: $(node -p "require('./package.json').version")"
           NEW_VERSION=$(npm version ${{ github.event.inputs.version_type }} --no-git-tag-version)
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Bumped version from ${{ steps.current_version.outputs.version }} to $NEW_VERSION"
+          echo "New version is: $NEW_VERSION"
 
       - name: Generate changelog
         run: |
@@ -99,29 +101,31 @@ jobs:
 
       - name: Push changes and tags
         run: |
+          echo "Pushing changes to main branch..."
           git push origin main
+          echo "Creating and pushing tag ${{ steps.version_bump.outputs.new_version }}..."
           git push origin ${{ steps.version_bump.outputs.new_version }}
+          echo "Successfully pushed changes and tags!"
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          echo "Publishing to npm..."
+          npm publish --access public
+          echo "Successfully published to npm!"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        run: |
+          gh release create ${{ steps.version_bump.outputs.new_version }} \
+            --title "Release ${{ steps.version_bump.outputs.new_version }}" \
+            --notes "## Changes in ${{ steps.version_bump.outputs.new_version }}
+
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for detailed changes.
+
+          ### Installation
+          \`\`\`bash
+          npm install @gthangaraj-fr/react-button-library@${{ steps.version_bump.outputs.new_version }}
+          \`\`\`"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.version_bump.outputs.new_version }}
-          release_name: Release ${{ steps.version_bump.outputs.new_version }}
-          body: |
-            ## Changes in ${{ steps.version_bump.outputs.new_version }}
-
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for detailed changes.
-
-            ### Installation
-            ```bash
-            npm install @gthangaraj-fr/react-button-library@${{ steps.version_bump.outputs.new_version }}
-            ```
-          draft: false
-          prerelease: false
