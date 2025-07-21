@@ -66,9 +66,14 @@ function App() {
 ### Scripts
 
 - `npm run build` - Build the library
+- `npm run build:watch` - Build in watch mode
 - `npm run test` - Run tests
 - `npm run storybook` - Start Storybook development server
 - `npm run build-storybook` - Build Storybook for production
+- `npm run version:patch` - Bump patch version (1.0.0 → 1.0.1)
+- `npm run version:minor` - Bump minor version (1.0.0 → 1.1.0)
+- `npm run version:major` - Bump major version (1.0.0 → 2.0.0)
+- `npm run publish:manual` - Build and publish manually
 
 ### Building
 
@@ -77,6 +82,28 @@ The library is built using Rollup and outputs:
 - CommonJS (`dist/index.js`)
 - ES Modules (`dist/index.esm.js`)
 - TypeScript declarations (`dist/index.d.ts`)
+
+### Publishing
+
+#### Automated (Recommended)
+
+Use the GitHub Actions workflow for automated publishing:
+
+1. Go to Actions tab → "Patch and Publish"
+2. Click "Run workflow"
+3. Select version bump type (patch/minor/major)
+4. The workflow will handle building, versioning, changelog generation, and publishing
+
+See [WORKFLOW_SETUP.md](WORKFLOW_SETUP.md) for setup instructions.
+
+#### Manual Publishing
+
+```bash
+npm run build
+npm version patch  # or minor/major
+npm publish --access public
+git push origin main --follow-tags
+```
 
 ## License
 
