@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.4 - 2025-07-21
+
+### Changes
+- fix: remove redundant changelog headings for cleaner format
+
 ## v1.0.3 - 2025-07-21
 
 ### Changes
