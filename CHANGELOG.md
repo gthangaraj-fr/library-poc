@@ -1,10 +1,8 @@
 # Changelog
 
-## v1.0.1 - 2025-07-21
+## v1.0.2 - 2025-07-21
 
 ### Changes
-- Initial release
-- fix: update GitHub Actions permissions for repository write access
-- Workflow for patch & publish
-- feature - Intial project setup
+### Changes since v1.0.1
+- fix: correct workflow file location and improve error handling
 
