@@ -75,7 +75,6 @@ jobs:
             echo "- Initial release" >> CHANGELOG_NEW.md
             git log --pretty=format:"- %s" --no-merges >> CHANGELOG_NEW.md
           else
-            echo "### Changes since $LAST_TAG" >> CHANGELOG_NEW.md
             git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges >> CHANGELOG_NEW.md
           fi
 
