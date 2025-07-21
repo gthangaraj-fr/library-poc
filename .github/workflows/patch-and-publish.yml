@@ -64,34 +64,45 @@ jobs:
 
       - name: Generate changelog
         run: |
-          echo "# Changelog" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "## ${{ steps.version_bump.outputs.new_version }} - $(date +'%Y-%m-%d')" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "### Changes" >> CHANGELOG.md
+          # Create temporary changelog for new version
+          echo "## ${{ steps.version_bump.outputs.new_version }} - $(date +'%Y-%m-%d')" > CHANGELOG_NEW.md
+          echo "" >> CHANGELOG_NEW.md
+          echo "### Changes" >> CHANGELOG_NEW.md
 
           # Get commits since last tag or from beginning if no tags
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
-            echo "- Initial release" >> CHANGELOG.md
-            git log --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+            echo "- Initial release" >> CHANGELOG_NEW.md
+            git log --pretty=format:"- %s" --no-merges >> CHANGELOG_NEW.md
           else
-            echo "### Changes since $LAST_TAG" >> CHANGELOG.md
-            git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+            echo "### Changes since $LAST_TAG" >> CHANGELOG_NEW.md
+            git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges >> CHANGELOG_NEW.md
           fi
 
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG_NEW.md
+          echo "" >> CHANGELOG_NEW.md
 
-          # If changelog already exists, append to it
-          if [ -f CHANGELOG_OLD.md ]; then
-            tail -n +4 CHANGELOG_OLD.md >> CHANGELOG.md
+          # If existing changelog exists, merge with new entry at the top
+          if [ -f CHANGELOG.md ]; then
+            # Create new changelog with new version at top
+            echo "# Changelog" > CHANGELOG_TEMP.md
+            echo "" >> CHANGELOG_TEMP.md
+            cat CHANGELOG_NEW.md >> CHANGELOG_TEMP.md
+            # Skip the first two lines (# Changelog and empty line) from existing changelog
+            tail -n +3 CHANGELOG.md >> CHANGELOG_TEMP.md
+            mv CHANGELOG_TEMP.md CHANGELOG.md
+          else
+            # Create new changelog file
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            cat CHANGELOG_NEW.md >> CHANGELOG.md
           fi
+
+          # Clean up temporary file
+          rm -f CHANGELOG_NEW.md
 
       - name: Commit version bump and changelog
         run: |
-          mv CHANGELOG.md CHANGELOG_OLD.md 2>/dev/null || true
-          mv CHANGELOG_OLD.md CHANGELOG.md
           git add package.json package-lock.json CHANGELOG.md
           git commit -m "chore: bump version to ${{ steps.version_bump.outputs.new_version }} and update changelog"
 
