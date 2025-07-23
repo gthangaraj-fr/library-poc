@@ -1,6 +1,6 @@
 {
   "name": "@gthangaraj-fr/react-button-library",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "A simple React button library",
   "type": "module",
   "main": "dist/index.js",

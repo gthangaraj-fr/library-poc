@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 - 2025-07-23
+
+### Changes
+- feature: Another major changed done
+- feature: A first major change
+
 ## v1.0.5 - 2025-07-23
 
 ### Changes
