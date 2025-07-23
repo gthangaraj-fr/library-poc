@@ -33,7 +33,7 @@ export interface ButtonProps {
 }
 
 /**
- * A simple, customizable button component
+ * A simple, customizable button component -> Small change.
  */
 export const Button: React.FC<ButtonProps> = ({
   children,
