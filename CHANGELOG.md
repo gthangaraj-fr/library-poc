@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.5 - 2025-07-23
+
+### Changes
+- fix: commenting code for slack communication
+- chore: comment out Slack notification step for later setup
+- feat: add Slack notification for version releases
+
 ## v1.0.4 - 2025-07-21
 
 ### Changes
