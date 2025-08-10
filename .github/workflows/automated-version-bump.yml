@@ -50,8 +50,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "GitHub Actions Bot"
+          git config --local user.email "survey-serv-ci@users.noreply.github.com"
+          git config --local user.name "Survey Serv Release Bot"
           git config --local url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Get current version
@@ -109,8 +109,12 @@ jobs:
       - name: Create Pull Request
         run: |
           PR_URL=$(gh pr create \
-            --title "Version Bump to ${{ steps.version_bump.outputs.new_version }}" \
+            --title "chore(release): bump version to ${{ steps.version_bump.outputs.new_version }}" \
             --body "## Automated Version Bump: ${{ steps.version_bump.outputs.new_version }}
+
+          **Initiated by:** @${{ github.actor }}
+          **Workflow run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          **Trigger:** Manual workflow dispatch
 
           ### Changes:
           - **Version**: ${{ steps.current_version.outputs.version }} → ${{ steps.version_bump.outputs.new_version }}
@@ -153,21 +157,11 @@ jobs:
 
           # Check commit message patterns (including merge commit messages)
           COMMIT_MATCH=false
-          if echo "$COMMIT_MSG" | grep -q "chore: bump version to\|Version Bump to\|bump version\|version-bump-"; then
+          if echo "$COMMIT_MSG" | grep -q "chore: bump version to\|chore(release): bump version to\|Version Bump to\|bump version"; then
             COMMIT_MATCH=true
           fi
 
-          # Check if package.json was modified in the merge (look at last 2 commits)
-          PACKAGE_MODIFIED=false
-          if git diff HEAD~1 HEAD --name-only | grep -q "package.json"; then
-            PACKAGE_MODIFIED=true
-            echo "package.json modified in merge commit"
-          elif git diff HEAD~2 HEAD --name-only | grep -q "package.json"; then
-            PACKAGE_MODIFIED=true
-            echo "package.json modified in recent commits"
-          fi
-
-          # Also check the PR branch pattern in merge commit
+          # Check the PR branch pattern in merge commit
           PR_BRANCH_MATCH=false
           if echo "$COMMIT_MSG" | grep -q "version-bump-[0-9]"; then
             PR_BRANCH_MATCH=true
@@ -175,15 +169,14 @@ jobs:
           fi
 
           echo "Commit message match: $COMMIT_MATCH"
-          echo "Package.json modified: $PACKAGE_MODIFIED"  
           echo "PR branch match: $PR_BRANCH_MATCH"
 
-          if [ "$COMMIT_MATCH" = true ] || [ "$PACKAGE_MODIFIED" = true ] || [ "$PR_BRANCH_MATCH" = true ]; then
+          if [ "$COMMIT_MATCH" = true ] || [ "$PR_BRANCH_MATCH" = true ]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             VERSION=$(node -p "require('./package.json').version")
             echo "version=v$VERSION" >> $GITHUB_OUTPUT
             echo "✅ Version bump detected: $VERSION"
-            echo "Reason: Commit=$COMMIT_MATCH, Package=$PACKAGE_MODIFIED, Branch=$PR_BRANCH_MATCH"
+            echo "Reason: Commit=$COMMIT_MATCH, Branch=$PR_BRANCH_MATCH"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
             echo "❌ Not a version bump commit, skipping publish"
@@ -217,8 +210,8 @@ jobs:
       - name: Create Git tag
         if: steps.check_version.outputs.is_version_bump == 'true'
         run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "GitHub Actions Bot"
+          git config --local user.email "survey-serv-ci@users.noreply.github.com"
+          git config --local user.name "Survey Serv Release Bot"
           git tag ${{ steps.check_version.outputs.version }}
           git push origin ${{ steps.check_version.outputs.version }}
           echo "Git tag created and pushed!"
