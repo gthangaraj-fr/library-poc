@@ -128,8 +128,7 @@ jobs:
 
           **⚠️ Ready to merge and publish!**" \
             --head ${{ steps.branch.outputs.branch_name }} \
-            --base main \
-            --label "version-bump,automated"
+            --base main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
