@@ -20,7 +20,6 @@ permissions:
   contents: write
   pull-requests: write
   packages: write
-  actions: write
 
 jobs:
   create-version-pr:
@@ -109,10 +108,9 @@ jobs:
       - name: Push feature branch
         run: git push origin ${{ steps.branch.outputs.branch_name }}
 
-      - name: Create Pull Request or Push with Instructions
+      - name: Create Pull Request
         run: |
-          # Try to create PR first
-          if gh pr create \
+          gh pr create \
             --title "🚀 Version Bump to ${{ steps.version_bump.outputs.new_version }}" \
             --body "## Version Bump: ${{ steps.version_bump.outputs.new_version }}
 
@@ -132,33 +130,10 @@ jobs:
 
           **⚠️ Ready to merge and publish!**" \
             --head ${{ steps.branch.outputs.branch_name }} \
-            --base main; then
-            echo "✅ Pull request created successfully"
-          else
-            echo "❌ Failed to create PR automatically"
-            echo "📋 Manual steps required:"
-            echo "1. Go to: https://github.com/${{ github.repository }}/compare/main...${{ steps.branch.outputs.branch_name }}"
-            echo "2. Create PR manually to merge version bump"
-            echo "3. After merge, the publish workflow will run automatically"
-            
-            # Create a summary file for manual reference
-            cat > PR_INSTRUCTIONS.md << EOF
-          # Manual PR Required
+            --base main
 
-          ## Branch: ${{ steps.branch.outputs.branch_name }}
-          ## Version: ${{ steps.version_bump.outputs.new_version }}
-
-          **Create PR manually:**
-          https://github.com/${{ github.repository }}/compare/main...${{ steps.branch.outputs.branch_name }}
-
-          **Changes:**
-          ${{ steps.changes.outputs.summary }}
-          EOF
-            
-            git add PR_INSTRUCTIONS.md
-            git commit -m "docs: add manual PR instructions for version ${{ steps.version_bump.outputs.new_version }}"
-            git push origin ${{ steps.branch.outputs.branch_name }}
-          fi
+          echo "✅ Pull request created successfully!"
+          echo "🔗 View PR: https://github.com/${{ github.repository }}/pulls"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
