@@ -151,32 +151,44 @@ jobs:
           COMMIT_MSG=$(git log -1 --pretty=%s)
           echo "Latest commit message: $COMMIT_MSG"
 
-          # Check commit message patterns
+          # Check commit message patterns (including merge commit messages)
           COMMIT_MATCH=false
-          if echo "$COMMIT_MSG" | grep -q "chore: bump version to\|Version Bump to\|bump version"; then
+          if echo "$COMMIT_MSG" | grep -q "chore: bump version to\|Version Bump to\|bump version\|version-bump-"; then
             COMMIT_MATCH=true
           fi
 
-          # Check if package.json was modified in the last commit
+          # Check if package.json was modified in the merge (look at last 2 commits)
           PACKAGE_MODIFIED=false
-          if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "package.json"; then
+          if git diff HEAD~1 HEAD --name-only | grep -q "package.json"; then
             PACKAGE_MODIFIED=true
+            echo "package.json modified in merge commit"
+          elif git diff HEAD~2 HEAD --name-only | grep -q "package.json"; then
+            PACKAGE_MODIFIED=true
+            echo "package.json modified in recent commits"
+          fi
+
+          # Also check the PR branch pattern in merge commit
+          PR_BRANCH_MATCH=false
+          if echo "$COMMIT_MSG" | grep -q "version-bump-[0-9]"; then
+            PR_BRANCH_MATCH=true
+            echo "Version bump branch pattern detected in merge"
           fi
 
           echo "Commit message match: $COMMIT_MATCH"
-          echo "Package.json modified: $PACKAGE_MODIFIED"
+          echo "Package.json modified: $PACKAGE_MODIFIED"  
+          echo "PR branch match: $PR_BRANCH_MATCH"
 
-          if [ "$COMMIT_MATCH" = true ] || [ "$PACKAGE_MODIFIED" = true ]; then
+          if [ "$COMMIT_MATCH" = true ] || [ "$PACKAGE_MODIFIED" = true ] || [ "$PR_BRANCH_MATCH" = true ]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             VERSION=$(node -p "require('./package.json').version")
             echo "version=v$VERSION" >> $GITHUB_OUTPUT
             echo "✅ Version bump detected: $VERSION"
-            echo "Reason: Commit match=$COMMIT_MATCH, Package modified=$PACKAGE_MODIFIED"
+            echo "Reason: Commit=$COMMIT_MATCH, Package=$PACKAGE_MODIFIED, Branch=$PR_BRANCH_MATCH"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
             echo "❌ Not a version bump commit, skipping publish"
             echo "Commit message: $COMMIT_MSG"
-            echo "No package.json changes detected"
+            echo "No version bump indicators found"
           fi
 
       - name: Setup Node.js
