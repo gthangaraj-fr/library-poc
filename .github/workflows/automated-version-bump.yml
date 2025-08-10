@@ -107,10 +107,9 @@ jobs:
         run: git push origin ${{ steps.branch.outputs.branch_name }}
 
       - name: Create Pull Request
-        id: create_pr
         run: |
-          PR_URL=$(gh pr create \
-            --title "🚀 Version Bump to ${{ steps.version_bump.outputs.new_version }}" \
+          PR_URL=$(gh pr create 
+            --title "🚀 Version Bump to ${{ steps.version_bump.outputs.new_version }}" 
             --body "## Automated Version Bump: ${{ steps.version_bump.outputs.new_version }}
 
           ### 📦 Changes:
@@ -126,12 +125,12 @@ jobs:
           - 🏷️ Git tag created  
           - 📋 GitHub release created
 
-          **⚡ This PR will auto-merge in 30 seconds for automated publishing!**" \
-            --head ${{ steps.branch.outputs.branch_name }} \
+          **⚡ Merge this PR to trigger automated publishing!**" 
+            --head ${{ steps.branch.outputs.branch_name }} 
             --base main)
 
-          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
           echo "✅ Pull request created: $PR_URL"
+          echo "🔗 Review and merge to complete: $PR_URL"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
