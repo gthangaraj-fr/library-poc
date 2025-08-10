@@ -78,10 +78,10 @@ jobs:
           # Get commits since last tag for release notes
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
-            CHANGES=$(git log --pretty=format:"- %s" --no-merges | head -10)
+            CHANGES=$(git log --pretty=format:"- [%s](https://github.com/${{ github.repository }}/commit/%H)" --no-merges | head -10)
             RELEASE_TYPE="Initial Release"
           else
-            CHANGES=$(git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges | head -10)
+            CHANGES=$(git log $LAST_TAG..HEAD --pretty=format:"- [%s](https://github.com/${{ github.repository }}/commit/%H)" --no-merges | head -10)
             RELEASE_TYPE="Update"
           fi
 
@@ -250,10 +250,10 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
           if [ -z "$LAST_TAG" ]; then
-            CHANGES=$(git log --pretty=format:"- %s" --no-merges HEAD^)
+            CHANGES=$(git log --pretty=format:"- [%s](https://github.com/${{ github.repository }}/commit/%H)" --no-merges HEAD^)
             RELEASE_TYPE="Initial Release"
           else
-            CHANGES=$(git log $LAST_TAG..HEAD^ --pretty=format:"- %s" --no-merges)
+            CHANGES=$(git log $LAST_TAG..HEAD^ --pretty=format:"- [%s](https://github.com/${{ github.repository }}/commit/%H)" --no-merges)
             RELEASE_TYPE="Update"
           fi
 
