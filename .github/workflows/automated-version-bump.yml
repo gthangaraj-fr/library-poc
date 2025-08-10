@@ -223,6 +223,32 @@ jobs:
           git push origin ${{ steps.check_version.outputs.version }}
           echo "Git tag created and pushed!"
 
+      - name: Cleanup version bump branch
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        run: |
+          # Extract branch name from merge commit message
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          echo "Commit message: $COMMIT_MSG"
+
+          # Extract branch name (e.g., version-bump-20250810-084452)
+          BRANCH_NAME=$(echo "$COMMIT_MSG" | grep -o 'version-bump-[0-9]\{8\}-[0-9]\{6\}' | head -1)
+
+          if [ -n "$BRANCH_NAME" ]; then
+            echo "Attempting to delete branch: $BRANCH_NAME"
+            
+            # Delete the remote branch
+            if git push origin --delete "$BRANCH_NAME" 2>/dev/null; then
+              echo "✅ Successfully deleted remote branch: $BRANCH_NAME"
+            else
+              echo "⚠️ Branch $BRANCH_NAME may have been already deleted or doesn't exist"
+            fi
+          else
+            echo "ℹ️ Could not extract version bump branch name from commit message"
+            echo "Commit message was: $COMMIT_MSG"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate release notes
         if: steps.check_version.outputs.is_version_bump == 'true'
         id: release_notes
