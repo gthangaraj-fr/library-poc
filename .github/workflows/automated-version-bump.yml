@@ -148,14 +148,35 @@ jobs:
       - name: Check if this is a version bump commit
         id: check_version
         run: |
-          if git log -1 --pretty=%s | grep -q "chore: bump version to"; then
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          echo "Latest commit message: $COMMIT_MSG"
+
+          # Check commit message patterns
+          COMMIT_MATCH=false
+          if echo "$COMMIT_MSG" | grep -q "chore: bump version to\|Version Bump to\|bump version"; then
+            COMMIT_MATCH=true
+          fi
+
+          # Check if package.json was modified in the last commit
+          PACKAGE_MODIFIED=false
+          if git diff-tree --no-commit-id --name-only -r HEAD | grep -q "package.json"; then
+            PACKAGE_MODIFIED=true
+          fi
+
+          echo "Commit message match: $COMMIT_MATCH"
+          echo "Package.json modified: $PACKAGE_MODIFIED"
+
+          if [ "$COMMIT_MATCH" = true ] || [ "$PACKAGE_MODIFIED" = true ]; then
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             VERSION=$(node -p "require('./package.json').version")
             echo "version=v$VERSION" >> $GITHUB_OUTPUT
-            echo "Version bump detected: $VERSION"
+            echo "✅ Version bump detected: $VERSION"
+            echo "Reason: Commit match=$COMMIT_MATCH, Package modified=$PACKAGE_MODIFIED"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
-            echo "Not a version bump commit, skipping publish"
+            echo "❌ Not a version bump commit, skipping publish"
+            echo "Commit message: $COMMIT_MSG"
+            echo "No package.json changes detected"
           fi
 
       - name: Setup Node.js
