@@ -79,10 +79,10 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
             CHANGES=$(git log --pretty=format:"- %s" --no-merges | head -10)
-            RELEASE_TYPE="🎉 Initial Release"
+            RELEASE_TYPE="Initial Release"
           else
             CHANGES=$(git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges | head -10)
-            RELEASE_TYPE="📦 Update"
+            RELEASE_TYPE="Update"
           fi
 
           echo "changes<<EOF" >> $GITHUB_OUTPUT
@@ -101,64 +101,36 @@ jobs:
           Version: ${{ steps.current_version.outputs.version }} → ${{ steps.version_bump.outputs.new_version }}
           Type: ${{ github.event.inputs.version_type }}
 
-          🚀 Ready for automated publish after merge"
+          Ready for automated publish after merge"
 
       - name: Push feature branch
         run: git push origin ${{ steps.branch.outputs.branch_name }}
 
       - name: Create Pull Request
         run: |
-          PR_URL=$(gh pr create 
-            --title "🚀 Version Bump to ${{ steps.version_bump.outputs.new_version }}" 
+          PR_URL=$(gh pr create \
+            --title "Version Bump to ${{ steps.version_bump.outputs.new_version }}" \
             --body "## Automated Version Bump: ${{ steps.version_bump.outputs.new_version }}
 
-          ### 📦 Changes:
+          ### Changes:
           - **Version**: ${{ steps.current_version.outputs.version }} → ${{ steps.version_bump.outputs.new_version }}
           - **Type**: ${{ github.event.inputs.version_type }}
-          - **Build**: ✅ Verified successful
+          - **Build**: Verified successful
 
-          ### 📋 Recent commits:
+          ### Recent commits:
           ${{ steps.changes.outputs.changes }}
 
-          ### 🚀 After Merge - Automatic Actions:
-          - ✅ npm package published 
-          - 🏷️ Git tag created  
-          - 📋 GitHub release created
+          ### After Merge - Automatic Actions:
+          - npm package published 
+          - Git tag created  
+          - GitHub release created
 
-          **⚡ Merge this PR to trigger automated publishing!**" 
-            --head ${{ steps.branch.outputs.branch_name }} 
+          **Merge this PR to trigger automated publishing!**" \
+            --head ${{ steps.branch.outputs.branch_name }} \
             --base main)
 
-          echo "✅ Pull request created: $PR_URL"
-          echo "🔗 Review and merge to complete: $PR_URL"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Wait and Auto-merge PR
-        run: |
-          # Get PR number from URL
-          PR_NUMBER=$(echo "${{ steps.create_pr.outputs.pr_url }}" | grep -o '[0-9]*$')
-
-          echo "� Waiting 30 seconds before auto-merge..."
-          sleep 30
-
-          # Try to merge the PR
-          echo "🔄 Attempting to auto-merge PR #$PR_NUMBER..."
-
-          # First try auto-merge (respects branch protection)
-          if gh pr merge $PR_NUMBER --auto --squash --delete-branch; then
-            echo "✅ Auto-merge enabled! PR will merge automatically when checks pass."
-          else
-            echo "⚠️ Auto-merge failed, trying direct merge..."
-            # If auto-merge fails, try direct merge (requires admin bypass)
-            if gh pr merge $PR_NUMBER --squash --delete-branch; then
-              echo "✅ PR merged successfully!"
-            else
-              echo "❌ Auto-merge failed. Manual merge required."
-              echo "🔗 Please merge manually: ${{ steps.create_pr.outputs.pr_url }}"
-              exit 1
-            fi
-          fi
+          echo "Pull request created: $PR_URL"
+          echo "Review and merge to complete: $PR_URL"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -180,10 +152,10 @@ jobs:
             echo "is_version_bump=true" >> $GITHUB_OUTPUT
             VERSION=$(node -p "require('./package.json').version")
             echo "version=v$VERSION" >> $GITHUB_OUTPUT
-            echo "✅ Version bump detected: $VERSION"
+            echo "Version bump detected: $VERSION"
           else
             echo "is_version_bump=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ Not a version bump commit, skipping publish"
+            echo "Not a version bump commit, skipping publish"
           fi
 
       - name: Setup Node.js
@@ -205,7 +177,7 @@ jobs:
         run: |
           echo "Publishing to npm..."
           npm publish --access public
-          echo "✅ Successfully published to npm!"
+          echo "Successfully published to npm!"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -216,7 +188,7 @@ jobs:
           git config --local user.name "GitHub Actions Bot"
           git tag ${{ steps.check_version.outputs.version }}
           git push origin ${{ steps.check_version.outputs.version }}
-          echo "✅ Git tag created and pushed!"
+          echo "Git tag created and pushed!"
 
       - name: Generate release notes
         if: steps.check_version.outputs.is_version_bump == 'true'
@@ -227,25 +199,25 @@ jobs:
 
           if [ -z "$LAST_TAG" ]; then
             CHANGES=$(git log --pretty=format:"- %s" --no-merges HEAD^)
-            RELEASE_TYPE="🎉 Initial Release"
+            RELEASE_TYPE="Initial Release"
           else
             CHANGES=$(git log $LAST_TAG..HEAD^ --pretty=format:"- %s" --no-merges)
-            RELEASE_TYPE="📦 Update"
+            RELEASE_TYPE="Update"
           fi
 
           # Create release notes
           cat > release_notes.md << EOF
           ## $RELEASE_TYPE
 
-          ### 📋 Changes in this version:
+          ### Changes in this version:
           $CHANGES
 
-          ### 📦 Installation:
+          ### Installation:
           \`\`\`bash
           npm install @gthangaraj-fr/react-button-library@${{ steps.check_version.outputs.version }}
           \`\`\`
 
-          ### 🔗 Links:
+          ### Links:
           - [npm Package](https://www.npmjs.com/package/@gthangaraj-fr/react-button-library)
           - [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
 
@@ -260,6 +232,6 @@ jobs:
             --title "Release ${{ steps.check_version.outputs.version }}" \
             --notes-file release_notes.md \
             --latest
-          echo "✅ GitHub release created!"
+          echo "GitHub release created!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
