@@ -1,0 +1,232 @@
+name: Automated Version Bump and Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  create-version-pr:
+    name: Create Version Bump PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      new_version: ${{ steps.version_bump.outputs.new_version }}
+      branch_name: ${{ steps.branch.outputs.branch_name }}
+      changes_summary: ${{ steps.changes.outputs.summary }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          registry-url: 'https://registry.npmjs.org'
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+
+      - name: Get current version
+        id: current_version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create feature branch
+        id: branch
+        run: |
+          BRANCH_NAME="version-bump-$(date +'%Y%m%d-%H%M%S')"
+          git checkout -b $BRANCH_NAME
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: version_bump
+        run: |
+          NEW_VERSION=$(npm version ${{ github.event.inputs.version_type }} --no-git-tag-version)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped version to: $NEW_VERSION"
+
+      - name: Generate changes summary
+        id: changes
+        run: |
+          # Get commits since last tag for PR description
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            CHANGES="Initial release with all features"
+          else
+            CHANGES=$(git log $LAST_TAG..HEAD --pretty=format:"- %s" --no-merges | head -10)
+            if [ -z "$CHANGES" ]; then
+              CHANGES="- Minor updates and improvements"
+            fi
+          fi
+          
+          # Save changes for PR body (escape for GitHub)
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Commit changes
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to ${{ steps.version_bump.outputs.new_version }}
+
+          Version: ${{ steps.current_version.outputs.version }} → ${{ steps.version_bump.outputs.new_version }}
+          Type: ${{ github.event.inputs.version_type }}
+          
+          Ready for npm publishing and GitHub release."
+
+      - name: Push feature branch
+        run: git push origin ${{ steps.branch.outputs.branch_name }}
+
+      - name: Create Pull Request
+        run: |
+          gh pr create \
+            --title "🚀 Version Bump to ${{ steps.version_bump.outputs.new_version }}" \
+            --body "## Version Bump: ${{ steps.version_bump.outputs.new_version }}
+
+          ### 📦 Changes:
+          - **Version**: ${{ steps.current_version.outputs.version }} → ${{ steps.version_bump.outputs.new_version }}
+          - **Type**: ${{ github.event.inputs.version_type }}
+          - **Build**: ✅ Verified successful
+
+          ### 📋 Commits included:
+          ${{ steps.changes.outputs.summary }}
+
+          ### 🚀 After Merge:
+          - ✅ npm package published privately
+          - 🏷️ Git tag created  
+          - 📋 GitHub release created with detailed changelog
+          - 🔗 All changes documented in GitHub releases
+
+          **⚠️ Ready to merge and publish!**" \
+            --head ${{ steps.branch.outputs.branch_name }} \
+            --base main \
+            --label "version-bump,automated"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-after-merge:
+    name: Publish After PR Merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if this is a version bump commit
+        id: check_version
+        run: |
+          if git log -1 --pretty=%s | grep -q "chore: bump version to"; then
+            echo "is_version_bump=true" >> $GITHUB_OUTPUT
+            VERSION=$(node -p "require('./package.json').version")
+            echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "is_version_bump=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          registry-url: 'https://registry.npmjs.org'
+          cache: "npm"
+
+      - name: Install dependencies and build
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish to npm (private)
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        run: |
+          echo "Publishing to npm privately..."
+          npm publish --access restricted
+          echo "Successfully published to npm!"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Git tag
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git tag ${{ steps.check_version.outputs.version }}
+          git push origin ${{ steps.check_version.outputs.version }}
+
+      - name: Generate detailed release notes
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        id: release_notes
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            CHANGES=$(git log --pretty=format:"- %s" --no-merges)
+            RELEASE_TYPE="🎉 Initial Release"
+          else
+            CHANGES=$(git log $LAST_TAG..HEAD^ --pretty=format:"- %s" --no-merges)
+            RELEASE_TYPE="📦 Update"
+          fi
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## $RELEASE_TYPE
+          
+          ### 📋 Changes in this version:
+          $CHANGES
+          
+          ### 📦 Installation:
+          \`\`\`bash
+          npm install @gthangaraj-fr/react-button-library@${{ steps.check_version.outputs.version }}
+          \`\`\`
+          
+          ### 🔗 Links:
+          - [npm Package](https://www.npmjs.com/package/@gthangaraj-fr/react-button-library)
+          - [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
+          
+          ---
+          *This release was automatically generated by GitHub Actions*
+          EOF
+
+      - name: Create GitHub Release with detailed notes
+        if: steps.check_version.outputs.is_version_bump == 'true'
+        run: |
+          gh release create ${{ steps.check_version.outputs.version }} \
+            --title "Release ${{ steps.check_version.outputs.version }}" \
+            --notes-file release_notes.md \
+            --latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
